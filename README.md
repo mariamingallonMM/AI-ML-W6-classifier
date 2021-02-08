@@ -5,11 +5,12 @@ ColumbiaX CSMM.102x Machine Learning Course. Week 6 Assignment on Classifiers.
 ## INSTRUCTIONS
 Assume you are given labeled data  (x1,y1),…,(xN,yN) , where  x∈Rd  and  y∈{1,…,K} . In this assignment, you will implement a K-class Bayes classifier. In the specific classifier that you will implement, assume the following generative model: For the i-th data point, assume that
 
-![equation_1: yi∼iidDiscrete(π),xi|yi∼Normal(μyi,Σyi),i=1,…,N.](https://github.com/mariamingallonMM/AI-ML-W6-classifier/tree/main/ref/eq1.JPG?raw=true)
+https://github.com/mariamingallonMM/AI-ML-W6-classifier/tree/main/ref
+![equation_1: yi∼iidDiscrete(π),xi|yi∼Normal(μyi,Σyi),i=1,…,N.](./ref/eq1.JPG?raw=true)
 
 For this model, you will need to derive the maximum likelihood updates for the class prior probability vector  πˆ  and the class-specific Gaussian parameters  (μˆk,Σˆk)  for each class  k=1,…,K , where  ⋅ˆ  indicates "maximum likelihood estimate". While you will not turn in these derivations, you will need to implement them in your code, as well as the prediction for a new point  y0  given  x0  and these estimates:
 
-![equation_2: Prob(y0=y|x0,πˆ,(μˆ1,Σˆ1),…,(μˆK,ΣˆK))](https://github.com/mariamingallonMM/AI-ML-W6-classifier/tree/main/ref/eq2.JPG?raw=true)
+![equation_2: Prob(y0=y|x0,πˆ,(μˆ1,Σˆ1),…,(μˆK,ΣˆK))](./ref/eq2.JPG?raw=true)
 
 More details about the inputs we provide and the expected outputs are given below.
 
