@@ -15,8 +15,6 @@ For this model, we will **derive the maximum likelihood updates** for the class 
 
 ![equation_2: Prob(y0=y|x0,πˆ,(μˆ1,Σˆ1),…,(μˆK,ΣˆK))](./ref/eq2.JPG?raw=true)
 
-More details about the inputs and the expected outputs are given below.
-
 ## Execute the program
 
 The following command will execute your program:
@@ -46,6 +44,18 @@ Although not required in this assignment, I have created a jupyter notebook on K
 2. the results from the k-class Bayes classifier by plotting the outputs
 
 [AI-ColumbiaX-ML-W6-K-class Bayes Classifier](https://www.kaggle.com/mariamingallon/ai-columbiax-ml-w6-k-class-bayes-classifier)
+
+
+## How we develop the code
+
+- Split the dataset by class values, return a dictionary
+- Calculate the mean, stdev and count for each column in the dataset
+- Split dataset by class and calculate statistics for each row
+- Calculate the Gaussian probability distribution function for x
+- Calculate the probabilities of predicting each class for a given row
+- Predict the class for a given row
+- Implement Naive Bayes Algorithm
+
 
 ## Note on Correctness
 

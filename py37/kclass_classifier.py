@@ -23,15 +23,160 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
+def cross_validation_split(dataset, n_folds):
 
-def pluginClassifier(X_train, y_train, X_test):    
-  # this function returns the required output 
+    """
+    Splits a given dataset into k folds
+    """
+    
+    dataset_split = list()
+    dataset_copy = list(dataset)
+    fold_size = int(len(dataset) / n_folds)
 
-  final_outputs = 
+    for _ in range(n_folds):
+        fold = list()
+        while len(fold) < fold_size:
+            index = randrange(len(dataset_copy))
+            fold.append(dataset_copy.pop(index))
+        dataset_split.append(fold)
 
-  return final_outputs
+    return dataset_split
 
 
+def accuracy_metric(actual, predicted):
+    """
+    Calculate accuracy percentage
+    """
+    
+    correct = 0
+	
+    for i in range(len(actual)):
+        if actual[i] == predicted[i]:
+            correct += 1
+	
+    return correct / float(len(actual)) * 100.0
+
+
+def evaluate_algorithm(dataset, algorithm, n_folds, *args):
+    """
+    Evaluate an algorithm using a cross validation split
+    """
+	folds = cross_validation_split(dataset, n_folds)
+	scores = list()
+	for fold in folds:
+		train_set = list(folds)
+		train_set.remove(fold)
+		train_set = sum(train_set, [])
+		test_set = list()
+		for row in fold:
+			row_copy = list(row)
+			test_set.append(row_copy)
+			row_copy[-1] = None
+		predicted = algorithm(train_set, test_set, *args)
+		actual = [row[-1] for row in fold]
+		accuracy = accuracy_metric(actual, predicted)
+		scores.append(accuracy)
+	return scores
+
+
+def separate_by_class(X_train, y_train):
+	separated = dict()
+	for i in range(len(X_train)):
+		vector = X_train.iloc[i]
+		class_value = y_train.iloc[i]
+		if (class_value not in separated):
+			separated[class_value] = list()
+		separated[class_value].append(vector)
+	return separated
+
+def summarize_dataframe(X_train):
+
+    """
+    Calculate the mean, standard deviation and count for each column in the dataframe
+    returns a dataframe of mean, std and count for each column/feature in the dataset
+    """
+
+    mean = X_train.mean(axis=0)
+    sigma = X_train.std(axis=0, ddof=0)  #ddof = 0 to have same behaviour as numpy.std
+    count = X_train.count(axis=0)
+    
+    frame = {'mean': mean, 'std': sigma, 'count': count}
+
+    summaries = pd.DataFrame(frame)
+
+    return summaries
+
+def summarize_rows(rows):
+
+    mean = np.mean(rows, axis=0) #mean of given rows, per column in subset of dataframe
+    sigma = np.std(rows, axis=0, ddof = 0) #standard deviation of given rows, per column in subset of dataframe
+    count = np.count_nonzero(rows, axis=0) #number of non_zero elements in given rows, per column in subset of dataframe
+
+    summary_per_row = [mean, sigma, count]
+
+    return summary_per_row
+
+def summarize_by_class(X_train, y_train):
+    """
+    Split dataset by class then calculate statistics for each row
+    """
+    separated = separate_by_class(X_train, y_train)
+    summaries = dict()
+    for class_value, rows in separated.items():
+        #print(class_value, rows)
+        summaries[class_value] = summarize_rows(rows)
+    return summaries
+
+def calculate_probability(x, mean, stdev):
+    """
+    Calculate the Gaussian probability distribution function for x
+    """
+    exponent = exp(-((x-mean)**2 / (2 * stdev**2 )))
+	
+    return (1 / (sqrt(2 * pi) * stdev)) * exponent
+
+#TODO: review this function, fixing needed for working with dataframe vs arrays
+def calculate_class_probabilities(summaries, row):
+	total_rows = sum([summaries[label][0][2] for label in summaries])
+	probabilities = dict()
+	for class_value, class_summaries in summaries.items():
+		probabilities[class_value] = summaries[class_value][0][2]/float(total_rows)
+		for i in range(len(class_summaries)):
+			mean, stdev, _ = class_summaries[i]
+			probabilities[class_value] *= calculate_probability(row[i], mean, stdev)
+	return probabilities
+
+#TODO: review this function, calculate_class_probabilities probably because of passing of dataframe vs arrays
+def predict(summaries, row):
+	probabilities = calculate_class_probabilities(summaries, row)
+	best_label, best_prob = None, -1
+	for class_value, probability in probabilities.items():
+		if best_label is None or probability > best_prob:
+			best_prob = probability
+			best_label = class_value
+	return best_label
+
+#TODO: review this function, probably issues fixed one you fix predict function because of passing of dataframe vs arrays
+
+def pluginClassifier(X_train, X_test, y_train):
+    """
+    Implements a Bayes Naive Classifier from inputs:
+    X_train : 
+    y_train : 
+    X_test :
+
+    Outputs:
+    """
+	summarize = summarize_by_class(X_train, y_train)
+	predictions = list()
+	for i in range(len(X_test)):
+		row = X_test.iloc[i]
+        output = predict(summarize, row)
+		predictions.append(output)
+    
+    final_outputs = (predictions)
+	
+    return final_outputs
 
 
 
@@ -222,6 +367,11 @@ def main():
     in_data = 'glasstypes.csv'
     # get data
     df = get_data(in_data)
+
+    # shuffle dataframe in-place and reset the index to ensure split function does not exclude any classes in the train dataset
+    # the frac keyword argument specifies the fraction of rows to return in the random sample, so frac=1 means return all rows (in random order)
+    df = df.sample(frac=1).reset_index(drop=True).drop(['Id'], axis = 1)
+
     # split the dataset
     df_X_train, df_X_test, df_y_train, df_y_test = split_data(df, ratio = 0.7)
 
@@ -234,7 +384,7 @@ def main():
     corrplot(corr)
     
 
-    final_outputs = pluginClassifier(X_train, y_train, X_test) # assuming final_outputs is returned from function
+    final_outputs = pluginClassifier(df_X_train, df_y_train, df_X_test) # assuming final_outputs is returned from function
     np.savetxt("probs_test.csv", final_outputs, fmt='%1.2f', delimiter="\n") # write output to file, note values for fmt and delimiter
 
 
