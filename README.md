@@ -28,7 +28,7 @@ Note the following:
 
 The input csv files will need to be formatted as follows:
 
-- X_train.csv: A comma separated file containing the covariates. Each row corresponds to a single vector  xi .
+- X_train.csv: A comma separated file containing the covariates. Each row corresponds to a single vector  xi.
 - y_train.csv: A file containing the classes. Each row has a single number and the i-th row of this file combined with the i-th row of "X_train.csv" constitutes the labeled pair  (yi,xi) . There are 10 classes having index values 0,1,2,...,9.
 - X_test.csv: This file follows exactly the same format as "X_train.csv". No class file is given for the testing data.
 
