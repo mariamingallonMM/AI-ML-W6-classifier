@@ -23,6 +23,18 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
+
+def pluginClassifier(X_train, y_train, X_test):    
+  # this function returns the required output 
+
+  final_outputs = 
+
+  return final_outputs
+
+
+
+
+
 def heatmap(x, y, **kwargs):
     if 'color' in kwargs:
         color = kwargs['color']
@@ -161,6 +173,7 @@ def get_data(source_file):
        
     return df
 
+
 def split_data(df, ratio:float = 0.7):
 
     """
@@ -201,10 +214,12 @@ def write_csv(filename, a):
         df.to_csv(filepath, index = False, header = False)
         return print("New Outputs file saved to: <<", filename, ">>", sep='', end='\n')
 
+
 def main():
     
     #in_data = 'forestfires.csv'
-    in_data = 'winequality-red.csv'
+    #in_data = 'winequality-red.csv'
+    in_data = 'glasstypes.csv'
     # get data
     df = get_data(in_data)
     # split the dataset
@@ -218,5 +233,10 @@ def main():
     plt.figure(figsize=(10,10))
     corrplot(corr)
     
+
+    final_outputs = pluginClassifier(X_train, y_train, X_test) # assuming final_outputs is returned from function
+    np.savetxt("probs_test.csv", final_outputs, fmt='%1.2f', delimiter="\n") # write output to file, note values for fmt and delimiter
+
+
 if __name__ == '__main__':
     main()
