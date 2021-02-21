@@ -213,23 +213,9 @@ def main():
     write_csv('X_train.csv', df_X_train)
     write_csv('y_train.csv', df_y_train)
     write_csv('X_test.csv', df_X_test)
-
+    
     corr = df.corr()
-
-    plt.figure()
-    ax = sns.heatmap(
-        corr, 
-        vmin=-1, vmax=1, center=0,
-        cmap=sns.diverging_palette(20, 220, n=200),
-        square=True
-    )
-    ax.set_xticklabels(
-        ax.get_xticklabels(),
-        rotation=45,
-        horizontalalignment='right'
-    );
-
-    plt.figure()
+    plt.figure(figsize=(10,10))
     corrplot(corr)
     
 if __name__ == '__main__':
