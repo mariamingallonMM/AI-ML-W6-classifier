@@ -32,12 +32,20 @@ The input csv files will need to be formatted as follows:
 - y_train.csv: A file containing the classes. Each row has a single number and the i-th row of this file combined with the i-th row of "X_train.csv" constitutes the labeled pair  (yi,xi) . There are 10 classes having index values 0,1,2,...,9.
 - X_test.csv: This file follows exactly the same format as "X_train.csv". No class file is given for the testing data.
 
+
 ## Expected Outputs from the program
 
 When executed, the code writes the output to the file listed below following the formatting requirements specified also below.
 
 **probs_test.csv**: This is a comma separated file containing the posterior probabilities of the label of each row in **X_test.csv**. Since there are 10 classes, the i-th row of this file should contain 10 numbers, where the j-th number is the probability that the i-th testing point belongs to class j-1 (since classes are indexed 0 to 9 here).
 
+## Plotting results
+
+Although not required in this assignment, I have created a jupyter notebook on Kaggle.com to better understand :
+1. the initial dataset by plotting its correlations
+2. the results from the k-class Bayes classifier by plotting the outputs
+
+[AI-ColumbiaX-ML-W6-K-class Bayes Classifier](https://www.kaggle.com/mariamingallon/ai-columbiax-ml-w6-k-class-bayes-classifier)
 
 ## Note on Correctness
 
