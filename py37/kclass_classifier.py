@@ -61,28 +61,29 @@ def evaluate_algorithm(dataset, algorithm, n_folds, *args):
     """
     Evaluate an algorithm using a cross validation split
     """
-	folds = cross_validation_split(dataset, n_folds)
-	scores = list()
-	for fold in folds:
-		train_set = list(folds)
-		train_set.remove(fold)
-		train_set = sum(train_set, [])
-		test_set = list()
-		for row in fold:
-			row_copy = list(row)
-			test_set.append(row_copy)
-			row_copy[-1] = None
-		predicted = algorithm(train_set, test_set, *args)
-		actual = [row[-1] for row in fold]
-		accuracy = accuracy_metric(actual, predicted)
-		scores.append(accuracy)
-	return scores
+    
+    folds = cross_validation_split(dataset, n_folds)
+    scores = list()
+    for fold in folds:
+        train_set = list(folds)
+        train_set.remove(fold)
+        train_set = sum(train_set, [])
+        test_set = list()
+        for row in fold:
+            row_copy = list(row)
+            test_set.append(row_copy)
+            row_copy[-1] = None
+        predicted = algorithm(train_set, test_set, *args)
+        actual = [row[-1] for row in fold]
+        accuracy = accuracy_metric(actual, predicted)
+        scores.append(accuracy)
+    return scores
 
 
 def separate_by_class(X_train, y_train):
 	separated = dict()
 	for i in range(len(X_train)):
-		vector = X_train.iloc[i]
+		vector = X_train.iloc[i].to_numpy()
 		class_value = y_train.iloc[i]
 		if (class_value not in separated):
 			separated[class_value] = list()
@@ -106,7 +107,7 @@ def summarize_dataframe(X_train):
 
     return summaries
 
-def summarize_rows(rows):
+def summarize_per_row(rows):
 
     mean = np.mean(rows, axis=0) #mean of given rows, per column in subset of dataframe
     sigma = np.std(rows, axis=0, ddof = 0) #standard deviation of given rows, per column in subset of dataframe
@@ -118,45 +119,78 @@ def summarize_rows(rows):
 
 def summarize_by_class(X_train, y_train):
     """
-    Split dataset by class then calculate statistics for each row
+    Calculate statistics for each subset based on class
+    outputs:
+    a dictionary object where each key is the class value and then a list of all the records as the value in the dictionary
     """
+    
     separated = separate_by_class(X_train, y_train)
     summaries = dict()
+    
     for class_value, rows in separated.items():
-        #print(class_value, rows)
-        summaries[class_value] = summarize_rows(rows)
+        #print(class_value, row)
+        # convert class subset lists to a dataframe before passing on to summarize_dataframe
+        class_subset = pd.DataFrame(separated[class_value])
+        # obtain summary statistics per class subset
+        summaries[class_value] = summarize_dataframe(class_subset)
     return summaries
 
 def calculate_probability(x, mean, stdev):
     """
-    Calculate the Gaussian probability distribution function for x
-    """
-    exponent = exp(-((x-mean)**2 / (2 * stdev**2 )))
-	
-    return (1 / (sqrt(2 * pi) * stdev)) * exponent
+    Calculate the Gaussian probability distribution function for x from inputs:
+    
+    x: the variable we are calculating the probability for
+    mean: the mean of the distribution
+    stdev: the standard deviation of the distribution (sigma)
 
-#TODO: review this function, fixing needed for working with dataframe vs arrays
+    """
+    if (mean or stdev) == float(0.0):
+        probability = float(0.0)
+    else:
+        probability = (1 / (math.sqrt(2 * math.pi) * stdev)) * (math.exp(-((x-mean)**2 / (2 * stdev**2 ))))
+	
+    return probability
+
 def calculate_class_probabilities(summaries, row):
-	total_rows = sum([summaries[label][0][2] for label in summaries])
-	probabilities = dict()
-	for class_value, class_summaries in summaries.items():
-		probabilities[class_value] = summaries[class_value][0][2]/float(total_rows)
-		for i in range(len(class_summaries)):
-			mean, stdev, _ = class_summaries[i]
-			probabilities[class_value] *= calculate_probability(row[i], mean, stdev)
-	return probabilities
+    """
+    Calculate the probability of a value using the Gaussian Probability Density Function from inputs:
+    
+    summaries: prepared summaries of dataset
+    row: a new row
+
+    This function uses the statistics calculated from training data to calculate probabilities for the testing dataset (new data). Probabilities are calculated separately for each class. First, we calculate the probability that a new X vector from the testing dataset belongs to the first class. Then, we calculate the probabilities that it belongs to the second class, and so on for all the classes identified in the training dataset.
+
+    The probability that a new X vector from the testing dataset belongs to a class is calculated as follows:
+    P(class|data) = P(X|class) * P(class)
+    Note we have simplified the Bayes theorem by removing the division as we do not strictly need a number between 0 and 1 to predict the class the new data belongs to as we will be simply taking the maximum result from the above equation for each class.
+
+    """
+    # total number of training records calculated from the counts stored in the summary statistics
+    # note that the count column has the same value for all rows, and hence picking up item [0] will suffice
+    total_rows = sum([summaries[label]['count'][0] for label in summaries])
+    probabilities = dict()
+    for class_value, class_summaries in summaries.items():
+        probabilities[class_value] = summaries[class_value]['count']/float(total_rows)
+        for i in range(len(class_summaries)):
+            mean, stdev, _ = class_summaries.iloc[i]
+            probabilities[class_value] *= calculate_probability(row[i], mean, stdev)
+    return probabilities
 
 #TODO: review this function, calculate_class_probabilities probably because of passing of dataframe vs arrays
 def predict(summaries, row):
-	probabilities = calculate_class_probabilities(summaries, row)
-	best_label, best_prob = None, -1
-	for class_value, probability in probabilities.items():
-		if best_label is None or probability > best_prob:
-			best_prob = probability
-			best_label = class_value
-	return best_label
+    """
 
-#TODO: review this function, probably issues fixed one you fix predict function because of passing of dataframe vs arrays
+    """
+    
+    probabilities = calculate_class_probabilities(summaries, row)
+    #TODO here fix value error, review type of variable
+    best_label, best_prob = None, -1
+    for class_value, probability in probabilities.items():
+        if best_label is None or probability > best_prob:
+            best_prob = probability
+            best_label = class_value
+    return best_label
+
 
 def pluginClassifier(X_train, X_test, y_train):
     """
@@ -165,17 +199,26 @@ def pluginClassifier(X_train, X_test, y_train):
     y_train : 
     X_test :
 
+    How:
+    Step 1. Calculate the probability of data by the class they belong to (base rate)
+
     Outputs:
     """
-	summarize = summarize_by_class(X_train, y_train)
-	predictions = list()
-	for i in range(len(X_test)):
-		row = X_test.iloc[i]
-        output = predict(summarize, row)
-		predictions.append(output)
-    
+
+    # first calculate the probability of data by the class they belong to (base rate)
+    # we first separate the training data by class, then obtain statistics by class
+    summaries = summarize_by_class(X_train, y_train)
+
+    # create an empty list to store predictions
+    predictions = list()
+
+    for i in range(len(X_test)):
+        row = X_test.iloc[i]
+        output = predict(summaries, row)
+        predictions.append(output)
+
     final_outputs = (predictions)
-	
+    
     return final_outputs
 
 
@@ -370,7 +413,7 @@ def main():
 
     # shuffle dataframe in-place and reset the index to ensure split function does not exclude any classes in the train dataset
     # the frac keyword argument specifies the fraction of rows to return in the random sample, so frac=1 means return all rows (in random order)
-    df = df.sample(frac=1).reset_index(drop=True).drop(['Id'], axis = 1)
+    df = df.sample(frac=1).reset_index(drop=True).drop(['Id'], axis = 1).fillna(0)
 
     # split the dataset
     df_X_train, df_X_test, df_y_train, df_y_test = split_data(df, ratio = 0.7)
