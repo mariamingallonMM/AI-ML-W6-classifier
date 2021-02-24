@@ -22,6 +22,7 @@ from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
+#TODO: Some functions are missing docs, ensure all do have docs
 
 def cross_validation_split(dataset, n_folds):
 
@@ -176,18 +177,18 @@ def calculate_class_probabilities(summaries, row):
             probabilities[class_value] *= calculate_probability(row[i], mean, stdev)
     return probabilities
 
-#TODO: review this function, calculate_class_probabilities probably because of passing of dataframe vs arrays
 def predict(summaries, row):
     """
 
     """
     
     probabilities = calculate_class_probabilities(summaries, row)
-    #TODO here fix value error, review type of variable
+
     best_label, best_prob = None, -1
     for class_value, probability in probabilities.items():
-        if best_label is None or probability > best_prob:
-            best_prob = probability
+        print(class_value, probability[0])
+        if best_label is None or probability[0] > best_prob:
+            best_prob = probability[0]
             best_label = class_value
     return best_label
 
@@ -426,8 +427,15 @@ def main():
     plt.figure(figsize=(10,10))
     corrplot(corr)
     
+    
+    # remove the following once in deployment
+    #X_train = df_X_train
+    #X_test = df_X_test
+    #y_train = df_y_train
 
-    final_outputs = pluginClassifier(df_X_train, df_y_train, df_X_test) # assuming final_outputs is returned from function
+    #TODO: Check results
+    #TODO: Plot results
+    final_outputs = pluginClassifier(df_X_train, df_X_test, df_y_train) # assuming final_outputs is returned from function
     np.savetxt("probs_test.csv", final_outputs, fmt='%1.2f', delimiter="\n") # write output to file, note values for fmt and delimiter
 
 
