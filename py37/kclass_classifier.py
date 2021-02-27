@@ -186,7 +186,7 @@ def predict(summaries, row):
 
     best_label, best_prob = None, -1
     for class_value, probability in probabilities.items():
-        print(class_value, probability[0])
+        #print(class_value, probability[0])
         if best_label is None or probability[0] > best_prob:
             best_prob = probability[0]
             best_label = class_value
@@ -404,6 +404,24 @@ def write_csv(filename, a):
         return print("New Outputs file saved to: <<", filename, ">>", sep='', end='\n')
 
 
+def check_results(df_y_test, final_outputs):
+    score = 0
+    check = []
+    
+    for i in range(len(final_outputs)):
+        if final_outputs[i] == df_y_test.to_numpy()[i]:
+            score += 1
+            check.append('Correct')
+        else:
+            check.append('Incorrect')
+
+    n = len(final_outputs)
+
+
+    message = f"The k-class classifier has predicted a total of {score} classes out of {n} correctly. This means it is only correct a {score/n:.0%} of the time"
+
+    return score, check, n, message
+
 def main():
     
     #in_data = 'forestfires.csv'
@@ -422,21 +440,29 @@ def main():
     write_csv('X_train.csv', df_X_train)
     write_csv('y_train.csv', df_y_train)
     write_csv('X_test.csv', df_X_test)
+    write_csv('y_test.csv', df_y_test)
+
     
     corr = df.corr()
     plt.figure(figsize=(10,10))
     corrplot(corr)
-    
     
     # remove the following once in deployment
     #X_train = df_X_train
     #X_test = df_X_test
     #y_train = df_y_train
 
-    #TODO: Check results
-    #TODO: Plot results
+    # run the classifier to predict the class of each item in the y_train dataset
     final_outputs = pluginClassifier(df_X_train, df_X_test, df_y_train) # assuming final_outputs is returned from function
+    ## write the results of the prediction to a csv
+    np.savetxt("y_validate.csv", final_outputs, fmt='%1i', delimiter="\n") # write output to file, note values for fmt and delimiter
+    ## write the probability of predicting the class right to a csv #TODO fix to bring in the probability not the predicted class
     np.savetxt("probs_test.csv", final_outputs, fmt='%1.2f', delimiter="\n") # write output to file, note values for fmt and delimiter
+
+    ## compare the results of the prediction against the y_test dataset to calculate the total prediction error
+    score, check, n, message = check_results(df_y_test, final_outputs)
+    # write the results from the check ('Correct' / 'Incorrect') to a csv file
+    np.savetxt("check_results.csv", check, fmt='%s', delimiter="\n") # write output to file, note values for fmt and delimiter
 
 
 if __name__ == '__main__':
