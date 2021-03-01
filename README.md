@@ -48,13 +48,22 @@ Although not required in this assignment, I have created a jupyter notebook on K
 
 ## How we develop the code
 
-- Split the dataset by class values, return a dictionary
-- Calculate the mean, stdev and count for each column in the dataset
-- Split dataset by class and calculate statistics for each row
-- Calculate the Gaussian probability distribution function for x
-- Calculate the probabilities of predicting each class for a given row
-- Predict the class for a given row
-- Implement Naive Bayes Algorithm
+We use Bayes' Theorem to calculate the probability of a piece of data belonging to a given class, give our prior knowledge. Bayes' Theorem is stated as follows:
+
+P(class|data) = (P(data|class) * P(class)) / P(data)
+
+where 
+P(class|data) is the probability of class given the provided data.
+
+Naive Bayes is called 'naive' because the calculations of the probabilities for each class are simplified. Rather than attempting to calculate the probabilities of each attribute value, they are assumed to be conditionally independent given the class value. Although the latter is not true is most real life cases, the assumption still produces accurate results while enormously simplifying calculations.
+
+1. Split the dataset by class values, return a dictionary.
+2. Calculate the mean, stdev and count for each column in the dataset.
+3. Split dataset by class and calculate statistics for each row.
+4. Calculate the Gaussian probability distribution function for x.
+5. Calculate the probabilities of predicting each class for a given row.
+6. Predict the class for a given row.
+7. Implement Naive Bayes Algorithm.
 
 
 ## Note on Correctness
