@@ -12,8 +12,6 @@ import math
 from random import randrange
 import functools
 
-
-
 # 3rd party modules
 import pandas as pd
 import numpy as np
@@ -25,10 +23,8 @@ from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-#TODO: Some functions are missing docs, ensure all do have docs
 
-
-def separate_by_class(X_train, y_train):
+def separate_by_class(X_train, y_train) -> dict():
     """
     Separates our training data by class, from the following inputs:
     
@@ -52,9 +48,9 @@ def summarize_dataframe(dataframe):
 
     """
     Calculate the mean, standard deviation and count for each column in the dataframe from the following inputs:
-        X_train : training dataset features excluding the label (multiple columns)
+        dataframe : dataset to summarise as a DataFrame
     
-    It returns a dataframe of mean, std and count for each column/feature in the dataset.
+    It returns a DataFrame of mean, std and count for each column/feature in the dataset.
 
     """
 
@@ -68,7 +64,7 @@ def summarize_dataframe(dataframe):
 
     return summaries
 
-def summarize_by_class(X_train, y_train):
+def summarize_by_class(X_train, y_train) -> dict():
     """
     Calculate statistics (mean, stdv, count) for each class subset from the following inputs:
         X_train : training dataset features excluding the label (multiple columns)
@@ -83,7 +79,6 @@ def summarize_by_class(X_train, y_train):
     summaries = dict()
     
     for class_value, rows in separated.items():
-        #print(class_value, row)
         # convert class subset lists to a dataframe before passing on to summarize_dataframe
         class_subset = pd.DataFrame(separated[class_value])
         # obtain summary statistics per class subset
@@ -91,12 +86,7 @@ def summarize_by_class(X_train, y_train):
 
     return summaries
 
-
-#TODO: Have checked that this function works for
-# print(calculate_probability(0.0, 1.0, 1.0))
-# returns: 0.24197072451914337
-
-def calculate_probability(x, mean, stdev):
+def calculate_probability(x, mean, stdev) -> float:
     """
     Calculate the Gaussian probability distribution function for x from inputs:
     
@@ -108,6 +98,7 @@ def calculate_probability(x, mean, stdev):
     f(x) = (1 / sqrt(2 * PI) * sigma) * exp(-((x-mean)^2 / (2 * sigma^2)))
 
     """
+
     if (mean or stdev) == float(0.0):
         probability = float(0.0)
     else:
@@ -115,7 +106,7 @@ def calculate_probability(x, mean, stdev):
 
     return probability
 
-def calculate_class_probabilities(summaries, row):
+def calculate_class_probabilities(summaries, row) -> dict():
     """
     Calculate the probability of a value using the Gaussian Probability Density Function from inputs:
     
@@ -128,25 +119,32 @@ def calculate_class_probabilities(summaries, row):
     P(class|data) = P(X|class) * P(class)
     Note we have simplified the Bayes theorem by removing the division as we do not strictly need a number between 0 and 1 to predict the class the new data belongs to as we will be simply taking the maximum result from the above equation for each class.
 
+    It returns a dictionary where each key is the class label and the values are the probabibilities of that row belonging to each class on the dataset.
+
     """
     # total number of training records calculated from the counts stored in the summary statistics
     # note that the count column has the same value for all rows, and hence picking up item [0] will suffice
     total_rows = sum([summaries[label]['count'][0] for label in summaries])
     probabilities = dict()
     for class_value, class_summaries in summaries.items():
-        print(summaries[class_value]['count'][0])
         probabilities[class_value] = summaries[class_value]['count'][0]/float(total_rows)
-        for i in range(len(class_summaries)):
+        for i in range(len(class_summaries)-1):
             mean, stdev, _ = class_summaries.iloc[i]
-            print(calculate_probability(row[i], mean, stdev))
             # probabilities are multiplied together as they accumulate.
             probabilities[class_value] *= calculate_probability(row[i], mean, stdev)
-            print(probabilities[class_value])
 
     return probabilities
 
-def predict(summaries, row):
+def predict(summaries, row) -> tuple:
     """
+    Predict the most likely class from inputs:
+
+    summaries: prepared summaries of dataset
+    row: a row in the dataset for predicting its label (a row of X_test)
+
+    This function uses the probabilities calculated from each class via the function 'calculate_class_probabilities' and returns the label with the highest probability.
+    
+    It returns the maximum likelihood estimate for a given row.
 
     """
     
@@ -154,42 +152,57 @@ def predict(summaries, row):
 
     best_label, best_prob = None, -1
     for class_value, probability in probabilities.items():
-        #print(class_value, probability[0])
-        if best_label is None or probability[0] > best_prob:
-            best_prob = probability[0]
+        print(class_value, probability)
+        if best_label is None or probability > best_prob:
+            best_prob = probability
             best_label = class_value
-    return best_label
+    return best_label, best_prob, probabilities
 
-def pluginClassifier(X_train, X_test, y_train = y_train):
+def pluginClassifier(X_train, X_test, y_train):
     """
     Implements a Bayes Naive Classifier from inputs:
-    X_train : 
-    y_train : 
-    X_test :
+    X_train : training dataset features excluding the label (multiple columns)
+    X_test : testing dataset features excluding the label (multiple columns)
+    y_train : corresponding labels of the training dataset (single column)
 
-    How:
-    Step 1. Calculate the probability of data by the class they belong to (base rate)
+    This function consists of the following main steps:
+    Step 1. Get a summary of the statistics of the training dataset (X_train, y_train) pairs combined
+    Step 2. Declare empty lists for predictions and probabilities for each row in X_test of belonging to each of the classes present on the dataset
+    Step 3. Get the maximum likelihood estimate for each row of belonging to each of the classes, from a given 'summaries' and 
 
-    Outputs:
+    It returns two lists:
+    prediction_outputs: a list of the predicted labels for each row (class of highest probability)
+    probabilities_output: a dictionary where each key is the class label and the values are the probabibilities of that row belonging to each class on the dataset.
+        
     """
 
     # first calculate the probability of data by the class they belong to (base rate)
-    # we first separate the training data by class, then obtain statistics by class
+    #if 'y_train' in kwargs:
+    #    y_train = kwargs['y_train']
+    #    # separate the training data by class, then obtain statistics by class
+    #    # summarize by class should be able to take the complete train_dataset and split the label
+    #    summaries = summarize_by_class(X_train, y_train)
+    #else:
+    #    #no y_train is specified, then we are actually predicting the label on the test dataset
+
+    # Step 1. Get statistics summary on the training dataset
     summaries = summarize_by_class(X_train, y_train)
 
-    # create an empty list to store predictions
+    # Step 2. create an empty list to store predictions
     predictions = list()
+    probabilities_output = list()
 
+    # Step 3. Go through each row in the testing dataset to get the maximum likelihood estimate of the probability of a row to belong to each of the classes
     for i in range(len(X_test)):
-        row = X_test.iloc[i]
-        output = predict(summaries, row)
-        predictions.append(output)
+        row = X_test.iloc[i] #note how row does not include the label value 'y'
+        out_prediction, _, out_probability = predict(summaries, row)
+        predictions.append(out_prediction)
+        probabilities_output.append(out_probability)
 
-    final_outputs = (predictions)
-    
-    return final_outputs
+    prediction_outputs = (predictions)
+    probabilities_output = (probabilities_output)
 
-
+    return prediction_outputs, probabilities_output
 
 def heatmap(x, y, **kwargs):
     if 'color' in kwargs:
@@ -301,10 +314,10 @@ def heatmap(x, y, **kwargs):
         ax.set_facecolor('white') # Make background white
         ax.set_xticks([]) # Remove horizontal ticks
         ax.set_yticks(np.linspace(min(bar_y), max(bar_y), 3)) # Show vertical ticks for min, middle and max
-        ax.yaxis.tick_right() # Show vertical ticks on the right 
+        ax.yaxis.tick_right() # Show vertical ticks on the right
 
 
-def corrplot(data, size_scale=500, marker='s'):
+def corrplot(data, size_scale:int = 500, marker:str = 's'):
     corr = pd.melt(data.reset_index(), id_vars='index')
     corr.columns = ['x', 'y', 'value']
     heatmap(
@@ -319,13 +332,20 @@ def corrplot(data, size_scale=500, marker='s'):
     )
 
 
-def get_data(source_file):
+def get_data(source_file, **kwargs):
+    """
+    Read data from a file given its name. Option to provide the path to the file if different from: [./datasets/in]
 
-# Define input and output filepaths
+    """
+    # Define input and output filepaths
     input_path = os.path.join(os.getcwd(),'datasets','in', source_file)
 
-    # Read input data
-    df = pd.read_csv(input_path)
+    if 'col_titles' in kwargs:
+        # Read input data
+        df = pd.read_csv(input_path, names = kwargs['col_titles'])
+    else:
+        # Read input data
+        df = pd.read_csv(input_path)
        
     return df
 
@@ -363,11 +383,19 @@ def split_data(df, ratio:float = 0.7):
     return df_X_train, df_X_test, df_y_train, df_y_test
 
 
-def write_csv(filename, a):
+def write_csv(filename, a, **kwargs):
         # write the outputs csv file
-        filepath = os.path.join(os.getcwd(),'datasets','out', filename)
+        if 'header' in kwargs:
+            header = kwargs['header']
+        else:
+            header = False
+        if 'path' in kwargs:
+            filepath = kwargs['path']
+        else:
+            filepath = os.path.join(os.getcwd(),'datasets','out', filename)
+
         df = pd.DataFrame(a)
-        df.to_csv(filepath, index = False, header = False)
+        df.to_csv(filepath, index = False, header = header)
         return print("New Outputs file saved to: <<", filename, ">>", sep='', end='\n')
 
 
@@ -426,12 +454,15 @@ def accuracy_metric(actual, predicted):
 
 
 
-def evaluate_algorithm(algorithm, n_folds, X_train, X_test, y_train = y_train):
+def evaluate_algorithm(algorithm, n_folds, X_train, X_test, y_train):
     """
     Evaluate an algorithm using a cross validation split
     """
 
+    #if 'y_train' in kwargs:
+    #    y_train = kwargs['y_train']
     folds = cross_validation_split(X_train, y_train, n_folds)
+
     scores = list()
     
     for fold in folds:
@@ -443,8 +474,17 @@ def evaluate_algorithm(algorithm, n_folds, X_train, X_test, y_train = y_train):
             row_copy = list(row)
             test_set.append(row_copy)
             row_copy[-1] = None
-        #TODO: transform train_set and test_set to dataframes as X_train and X_test instead of lists
-        predicted = algorithm(train_set, test_set)
+        #transform train_set and test_set to dataframes as X_train and X_test instead of lists
+        df_train_set =  pd.DataFrame(data=train_set)
+        df_test_set =  pd.DataFrame(data=test_set)
+        
+        
+        #split the df_train_set onto: X_train and y_train to match structure of pluginClassifier function
+        rows, cols = df_train_set.shape
+        df_y_train = df_train_set[df_train_set.columns[cols - 1]]
+        df_X_train = df_train_set[df_train_set.columns[:-1]]
+       
+        predicted, out_probabilities = algorithm(df_X_train, df_test_set, df_y_train)
         actual = [row[-1] for row in fold]
         accuracy = accuracy_metric(actual, predicted)
         scores.append(accuracy)
@@ -452,71 +492,65 @@ def evaluate_algorithm(algorithm, n_folds, X_train, X_test, y_train = y_train):
     print('Scores: %s' % scores)
     print('Mean Accuracy: %.3f%%' % (sum(scores)/float(len(scores))))
     
-    return scores
+    return scores, (predicted), (out_probabilities)
 
 
 def main():
-    
-    #in_data = 'forestfires.csv'
-    #in_data = 'winequality-red.csv'
-    in_data = 'glasstypes.csv'
+      
     # get data
-    df = get_data(in_data)
+    df = get_data('iris.data.csv', col_titles=['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'species_class']) #use for irisdata set
 
+    # Not needed in Vocareum
     # shuffle dataframe in-place and reset the index to ensure split function does not exclude any classes in the train dataset
     # the frac keyword argument specifies the fraction of rows to return in the random sample, so frac=1 means return all rows (in random order)
-    df = df.sample(frac=1).reset_index(drop=True).drop(['Id'], axis = 1).fillna(0)
+    #df = df.sample(frac=1).reset_index(drop=True).drop(['Id'], axis = 1).fillna(0) #for when using 'glasstypes.csv'
+    #df = df.sample(frac=1).reset_index(drop=True).fillna(0) #for when using 'iris.data.csv'
 
+    # to ensure label is numerical, convert the last column of the dataframe to numerical instead of categorical
+    _, cols = df.shape
+    df[df.columns[cols - 1]] = df[df.columns[cols - 1]].astype('category')
+    col_class = df.select_dtypes(['category']).columns
+    df[col_class] = df[col_class].apply(lambda x: x.cat.codes)
+
+    # Not needed in Vocareum
     # split the dataset
     df_X_train, df_X_test, df_y_train, df_y_test = split_data(df, ratio = 0.85)
 
+    # Not needed in Vocareum
     write_csv('X_train.csv', df_X_train)
     write_csv('y_train.csv', df_y_train)
     write_csv('X_test.csv', df_X_test)
     write_csv('y_test.csv', df_y_test)
 
+    # Not needed in Vocareum
     dataset_train = df_X_train.join(df_y_train)
     dataset_test = df_X_test.join(df_y_test)
 
+    # Not needed in Vocareum
     corr = df.corr()
     plt.figure(figsize=(10,10))
     corrplot(corr)
     
-    # remove the following once in deployment
-    X_train = df_X_train
-    X_test = df_X_test
-    y_train = df_y_train
-    y_test = df_y_test
-
+    # Not needed in Vocareum
     n_folds = 5
-
-    scores = evaluate_algorithm(pluginClassifier, n_folds, X_train, X_test, y_train)
+    # evaluate the algorithm and get scores of its accuracy
+    scores, class_predicted, prob_output = evaluate_algorithm(pluginClassifier, n_folds, df_X_train, df_X_test, df_y_train)
 
     # run the classifier to predict the class of each item in the y_train dataset
-    final_outputs = pluginClassifier(df_X_train, df_X_test, df_y_train) # assuming final_outputs is returned from function
+    class_predicted, prob_output  = pluginClassifier(df_X_train, df_X_test, y_train = df_y_train)
+
     ## write the results of the prediction to a csv
-    np.savetxt("y_validate.csv", final_outputs, fmt='%1i', delimiter="\n") # write output to file, note values for fmt and delimiter
-    ## write the probability of predicting the class right to a csv #TODO fix to bring in the probability not the predicted class
-    np.savetxt("probs_test.csv", final_outputs, fmt='%1.2f', delimiter="\n") # write output to file, note values for fmt and delimiter
+    np.savetxt("y_validate.csv", class_predicted, fmt='%1i', delimiter="\n") # write output to file, note values for fmt and delimiter
+
+    ## write the probability of predicting the class right to a csv
+    write_csv("probs_test.csv", prob_output, header = True, path = os.path.join(os.getcwd(), "probs_test.csv"))
 
     ## compare the results of the prediction against the y_test dataset to calculate the total prediction error
-    score, check, n, message = check_results(df_y_test, final_outputs)
+    score, check, n, message = check_results(df_y_test, class_predicted)
     # write the results from the check ('Correct' / 'Incorrect') to a csv file
     np.savetxt("check_results.csv", check, fmt='%s', delimiter="\n") # write output to file, note values for fmt and delimiter
 
 
 if __name__ == '__main__':
     main()
-
-#############################################################################
-    #TODO: Remove NOT USED
-def summarize_per_row(rows):
-
-    mean = np.mean(rows, axis=0) #mean of given rows, per column in subset of dataframe
-    sigma = np.std(rows, axis=0, ddof = 0) #standard deviation of given rows, per column in subset of dataframe
-    count = np.count_nonzero(rows, axis=0) #number of non_zero elements in given rows, per column in subset of dataframe
-
-    summary_per_row = [mean, sigma, count]
-
-    return summary_per_row
 
