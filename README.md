@@ -28,7 +28,9 @@ The input csv files will need to be formatted as follows:
 
 - X_train.csv: A comma separated file containing the covariates. Each row corresponds to a single vector  xi.
 - y_train.csv: A file containing the classes. Each row has a single number and the i-th row of this file combined with the i-th row of "X_train.csv" constitutes the labeled pair  (yi,xi) . There are 10 classes having index values 0,1,2,...,9.
-- X_test.csv: This file follows exactly the same format as "X_train.csv". No class file is given for the testing data.
+- X_test.csv: This file follows exactly the same format as "X_train.csv". 
+
+No class file is given for the testing data. This assignment uses supervised learning, the main idea being to be able to generalize to samples that we haven't seen before.
 
 
 ## Expected Outputs from the program
@@ -82,3 +84,4 @@ The following datasets have been selected from the UCI Machine Learning Reposito
 
 - [Forest Fires Data Set](http://archive.ics.uci.edu/ml/datasets/Forest+Fires) by P. Cortez and A. Morais. A Data Mining Approach to Predict Forest Fires using Meteorological Data. In J. Neves, M. F. Santos and J. Machado Eds., New Trends in Artificial Intelligence, Proceedings of the 13th EPIA 2007 - Portuguese Conference on Artificial Intelligence, December, Guimaraes, Portugal, pp. 512-523, 2007. APPIA, ISBN-13 978-989-95618-0-9.
 - [Wine Quality Data Set](http://archive.ics.uci.edu/ml/datasets/Wine+Quality) by P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. Modeling wine preferences by data mining from physicochemical properties. In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
+- [CIFAR-10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html). The CIFAR-10 dataset has been used for testing the Naives Bayes classifier as it consists of colour images in 10 different classes. Chapter 3 of the following report describes the dataset and the methodology followed when collecting the CIFAR-10 dataset in much greater detail. Learning Multiple Layers of Features from Tiny Images, Alex Krizhevsky, 2009.

@@ -24,17 +24,19 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
-def separate_by_class(X_train, y_train) -> dict():
+def separate_by_class(X_train, y_train, k_classes:int = 10) -> dict():
     """
     Separates our training data by class, from the following inputs:
     
         X_train : training dataset features excluding the label (multiple columns)
         y_train : correspoding labels of the training dataset (single column)
-
+        k_classes: number of k classes for the classifier, (10 classes fixed in assignment)
     It returns a dictionary where each key is the class value.
 
     """
-    separated = dict()
+    keys = list(range(k_classes))
+    separated = dict([(key, []) for key in keys])
+
     dataset_train = X_train.join(y_train)
     for i in range(len(dataset_train)):
         vector = dataset_train.iloc[i].to_numpy()
@@ -44,19 +46,25 @@ def separate_by_class(X_train, y_train) -> dict():
         separated[class_value].append(vector)
     return separated
 
-def summarize_dataframe(dataframe):
+def summarize_dataframe(dataframe, class_value, n_features):
 
     """
     Calculate the mean, standard deviation and count for each column in the dataframe from the following inputs:
         dataframe : dataset to summarise as a DataFrame
+        class_value : the value (label from 0 to 9) of the class being summarised
+        n_features : number of features (columns) in the training dataset (X_train + y_train)
     
-    It returns a DataFrame of mean, std and count for each column/feature in the dataset.
+    It returns a DataFrame of mean, std and count for each column/feature in the dataset. The number of features is used to populate the mean, stdv and coun figures for the unseen classes in the training dataset for the number of classes specify in k_classes.
 
     """
-
-    mean = dataframe.mean(axis=0)
-    sigma = dataframe.std(axis=0, ddof=1)  #ddof = 0 to have same behaviour as numpy.std, std takes the absolute value before squaring
-    count = dataframe.count(axis=0)
+    if dataframe.shape == (0,0):
+        mean = np.append(np.zeros(n_features), [class_value])
+        sigma = np.zeros(n_features + 1)
+        count = np.zeros(n_features + 1)
+    else:
+        mean = dataframe.mean(axis=0)
+        sigma = dataframe.std(axis=0, ddof=1)  #ddof = 0 to have same behaviour as numpy.std, std takes the absolute value before squaring
+        count = dataframe.count(axis=0)
     
     frame = {'mean': mean, 'std': sigma, 'count': count}
 
@@ -81,8 +89,8 @@ def summarize_by_class(X_train, y_train) -> dict():
     for class_value, rows in separated.items():
         # convert class subset lists to a dataframe before passing on to summarize_dataframe
         class_subset = pd.DataFrame(separated[class_value])
-        # obtain summary statistics per class subset
-        summaries[class_value] = summarize_dataframe(class_subset)
+        # obtain summary statistics per class subset, note we specify the number of features in the dataframe to be summarised
+        summaries[class_value] = summarize_dataframe(class_subset, class_value, len(X_train.columns))
 
     return summaries
 
@@ -111,7 +119,7 @@ def calculate_class_probabilities(summaries, row) -> dict():
     Calculate the probability of a value using the Gaussian Probability Density Function from inputs:
     
     summaries: prepared summaries of dataset
-    row: a new row
+    row: a row in the dataset for predicting its label (a row of X_test)
 
     This function uses the statistics calculated from training data to calculate probabilities for the testing dataset (new data). Probabilities are calculated separately for each class. First, we calculate the probability that a new X vector from the testing dataset belongs to the first class. Then, we calculate the probabilities that it belongs to the second class, and so on for all the classes identified in the training dataset.
 
@@ -132,6 +140,22 @@ def calculate_class_probabilities(summaries, row) -> dict():
             mean, stdev, _ = class_summaries.iloc[i]
             # probabilities are multiplied together as they accumulate.
             probabilities[class_value] *= calculate_probability(row[i], mean, stdev)
+    # normalize probabilities so that they sum 1
+
+    max_prob = probabilities[max(probabilities, key=probabilities.get)]
+    min_prob = probabilities[min(probabilities, key=probabilities.get)]
+
+    for class_value, probability in probabilities.items():
+        if (max_val - min_val) > 0:
+            probabilities[class_value] = (probability - min_val) / (max_val - min_val)
+        else:
+            probabilities[class_value] = float(0.0)
+
+    sum_prob = sum(probabilities.values())
+
+    for class_value, probability in probabilities.items():
+        if sum_prob > 0:
+            probabilities[class_value] = probability / sum_prob
 
     return probabilities
 
@@ -175,15 +199,6 @@ def pluginClassifier(X_train, X_test, y_train):
     probabilities_output: a dictionary where each key is the class label and the values are the probabibilities of that row belonging to each class on the dataset.
         
     """
-
-    # first calculate the probability of data by the class they belong to (base rate)
-    #if 'y_train' in kwargs:
-    #    y_train = kwargs['y_train']
-    #    # separate the training data by class, then obtain statistics by class
-    #    # summarize by class should be able to take the complete train_dataset and split the label
-    #    summaries = summarize_by_class(X_train, y_train)
-    #else:
-    #    #no y_train is specified, then we are actually predicting the label on the test dataset
 
     # Step 1. Get statistics summary on the training dataset
     summaries = summarize_by_class(X_train, y_train)
@@ -543,7 +558,7 @@ def main():
     np.savetxt("y_validate.csv", class_predicted, fmt='%1i', delimiter="\n") # write output to file, note values for fmt and delimiter
 
     ## write the probability of predicting the class right to a csv
-    write_csv("probs_test.csv", prob_output, header = True, path = os.path.join(os.getcwd(), "probs_test.csv"))
+    write_csv("probs_test.csv", prob_output, header = False, path = os.path.join(os.getcwd(), "probs_test.csv"))
 
     ## compare the results of the prediction against the y_test dataset to calculate the total prediction error
     score, check, n, message = check_results(df_y_test, class_predicted)
